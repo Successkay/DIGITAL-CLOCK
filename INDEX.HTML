@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Clock</title>
+  <style>
+    /* General Page Styling */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #2c3e50, #34495e);
+      color: #fff;
+      transition: background 0.5s;
+    }
+
+    /* Clock Container */
+    .clock {
+      text-align: center;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 30px 60px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      animation: fadeInUp 1s ease;
+    }
+
+    /* Time Styling */
+    #time {
+      font-size: 4rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      animation: tick 1s steps(1, end) infinite;
+    }
+
+    /* Date Styling */
+    #date {
+      margin-top: 10px;
+      font-size: 1.2rem;
+      opacity: 0.85;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes tick {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.9; }
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      margin-top: 15px;
+      padding: 8px 16px;
+      background: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.05);
+      background: #2980b9;
+    }
+
+    .light-theme {
+      background: linear-gradient(135deg, #ecf0f1, #bdc3c7);
+      color: #2c3e50;
+    }
+
+    .light-theme .clock {
+      background: rgba(255, 255, 255, 0.6);
+      color: #2c3e50;
+    }
+
+    .light-theme .theme-toggle {
+      background: #2c3e50;
+      color: #fff;
+    }
+
+    /* Controls and Greeting */
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .greeting {
+      margin-bottom: 10px;
+      font-size: 1.3rem;
+      font-weight: 500;
+      opacity: 0.9;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="clock">
+    <div class="greeting" id="greeting"></div>
+    <div id="short-date"></div>
+    <div id="time">00:00:00 <span id="ampm"></span></div>
+    <div id="date">Loading date...</div>
+    <div class="controls">
+      <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+      <button class="theme-toggle" onclick="toggleFormat()" id="formatBtn">Switch to 12h</button>
+      <button class="theme-toggle" onclick="toggleSeconds()" id="secondsBtn">Hide Seconds</button>
+    </div>
+  </div>
+
+  <script>
+    // Preferences
+    let is24Hour = JSON.parse(localStorage.getItem('is24Hour')) ?? true;
+    let showSeconds = JSON.parse(localStorage.getItem('showSeconds')) ?? true;
+    let userThemeOverride = false;
+
+    // Greeting based on time
+    function getGreeting(hour) {
+      if (hour < 5) return "Good Night 🌙";
+      if (hour < 12) return "Good Morning ☀️";
+      if (hour < 18) return "Good Afternoon 🌤️";
+      return "Good Evening 🌆";
+    }
+
+    // Set theme based on time
+    function setThemeByTime(hour) {
+      if (userThemeOverride) return; // Don't auto-change if user toggled
+      if (hour >= 6 && hour < 18) {
+        document.body.classList.add('light-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+      }
+    }
+
+    // Function to format time
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      let minutes = now.getMinutes();
+      let seconds = now.getSeconds();
+
+      // Greeting
+      document.getElementById('greeting').textContent = getGreeting(hours);
+
+      // Auto theme
+      setThemeByTime(hours);
+
+      let ampm = '';
+      let displayHours = hours;
+      if (!is24Hour) {
+        ampm = hours >= 12 ? 'PM' : 'AM';
+        displayHours = hours % 12 || 12;
+      }
+
+      displayHours = String(displayHours).padStart(2, '0');
+      minutes = String(minutes).padStart(2, '0');
+      seconds = String(seconds).padStart(2, '0');
+
+      let timeStr = `${displayHours}:${minutes}`;
+      if (showSeconds) timeStr += `:${seconds}`;
+
+      document.getElementById('time').textContent = timeStr;
+      document.getElementById('ampm').textContent = !is24Hour ? ampm : '';
+
+      // Date
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('date').textContent = now.toLocaleDateString(undefined, options);
+
+      // Short date (MM/DD/YYYY)
+      const shortDate = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}/${now.getFullYear()}`;
+      document.getElementById('short-date').textContent = shortDate;
+
+      // Update buttons
+      document.getElementById('formatBtn').textContent = is24Hour ? "Switch to 12h" : "Switch to 24h";
+      document.getElementById('secondsBtn').textContent = showSeconds ? "Hide Seconds" : "Show Seconds";
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Theme Toggle (user override)
+    function toggleTheme() {
+      document.body.classList.toggle('light-theme');
+      userThemeOverride = true;
+    }
+
+    // Format toggle
+    function toggleFormat() {
+      is24Hour = !is24Hour;
+      localStorage.setItem('is24Hour', JSON.stringify(is24Hour));
+      updateClock();
+    }
+
+    // Seconds toggle
+    function toggleSeconds() {
+      showSeconds = !showSeconds;
+      localStorage.setItem('showSeconds', JSON.stringify(showSeconds));
+      updateClock();
+    }
+  </script>
+</body>
+</html>
